@@ -229,6 +229,18 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/set/AppSet.vue'),
   },
   {
+    path: '/restore',
+    name: '恢复下载',
+    meta: {
+      icon: 'RollbackOutlined',
+      view: 'self',
+      target: '_self',
+      renderMenu: true,
+      cacheable: false,
+    },
+    component: () => import('@/pages/restore/index.vue'),
+  },
+  {
     path: '/database-switch',
     name: '源数据库',
     meta: {
