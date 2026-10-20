@@ -58,7 +58,7 @@ namespace dy.net.job
             }
 
             // 3. 提取重复的视频文件夹名（避免重复调用方法）
-            string videoFolderName = DouyinFileNameHelper.SanitizeLinuxFileName(item?.Desc, item?.AwemeId, true);
+            string videoFolderName = DouyinFileNameHelper.SanitizeLinuxFileName(DouyinFileNameHelper.StripHashtags(item?.Desc), item?.AwemeId, true);
 
             // 4. 简化文件夹路径拼接+存在判断（核心逻辑不变）
             var storageBasePath = GetStorageBasePath(cookie, config);

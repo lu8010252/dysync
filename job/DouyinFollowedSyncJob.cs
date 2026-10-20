@@ -61,7 +61,7 @@ namespace dy.net.job
             // 不刮削:视频直接放在博主文件夹里,不再每个视频一个文件夹
             if (config.CloseNfo) return rootFolder;
 
-            var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true);
+            var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(DouyinFileNameHelper.StripHashtags(item.Desc), item.AwemeId, true);
             var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName);
             var fileNameFolder = string.IsNullOrWhiteSpace(existingName) ? sampleName : existingName;
             return Path.Combine(rootFolder, fileNameFolder);
@@ -121,7 +121,7 @@ namespace dy.net.job
                     Id = item.AwemeId,
                     ReleaseTime = DateTimeUtil.Convert10BitTimestamp(item.CreateTime),
                     Resolution = $"{Width}×{Height}",
-                    VideoTitle = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId),
+                    VideoTitle = DouyinFileNameHelper.SanitizeLinuxFileName(DouyinFileNameHelper.StripHashtags(item.Desc), item.AwemeId),
                     Author = item.Author.Nickname
                 });
 

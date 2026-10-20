@@ -9,6 +9,16 @@ namespace dy.net.utils
     public static class DouyinFileNameHelper
     {
         /// <summary>
+        /// 去掉标题里的 #话题 标签(整段去掉,不保留标签文字)并合并多余空白,用于生成文件夹名/文件名
+        /// </summary>
+        public static string StripHashtags(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title)) return title;
+            var t = System.Text.RegularExpressions.Regex.Replace(title, @"#\S+", " ");
+            return System.Text.RegularExpressions.Regex.Replace(t, @"\s+", " ").Trim();
+        }
+
+        /// <summary>
         /// 处理文件名/文件夹名，确保符合 Linux 限制（最大 255 字节 UTF-8 编码）
         /// </summary>
         /// <param name="originalName">原始名称（支持英文、中文、混合字符）</param>

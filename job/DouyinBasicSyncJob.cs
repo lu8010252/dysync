@@ -220,7 +220,7 @@ namespace dy.net.job
                 if (!Directory.Exists(shared)) Directory.CreateDirectory(shared);
                 return shared;
             }
-            var subFolder = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true);
+            var subFolder = DouyinFileNameHelper.SanitizeLinuxFileName(DouyinFileNameHelper.StripHashtags(item.Desc), item.AwemeId, true);
             var folder = Path.Combine(GetStorageBasePath(cookie, config), subFolder);
             if (!Directory.Exists(folder))
             {
@@ -485,7 +485,7 @@ namespace dy.net.job
                             Id = item.AwemeId,
                             ReleaseTime = DateTimeUtil.Convert10BitTimestamp(item.CreateTime),
                             Resolution = $"{Width}×{Height}",
-                            VideoTitle = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId),
+                            VideoTitle = DouyinFileNameHelper.SanitizeLinuxFileName(DouyinFileNameHelper.StripHashtags(item.Desc), item.AwemeId),
                             Author = item.Author.Nickname
                         });
 

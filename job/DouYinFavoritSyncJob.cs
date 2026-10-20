@@ -62,7 +62,7 @@ namespace dy.net.job
                 if (!Directory.Exists(shared)) Directory.CreateDirectory(shared);
                 return shared;
             }
-            var folder = Path.Combine(storageBasePath, authorFolder, $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true)}");
+            var folder = Path.Combine(storageBasePath, authorFolder, $"{DouyinFileNameHelper.SanitizeLinuxFileName(DouyinFileNameHelper.StripHashtags(item.Desc), item.AwemeId, true)}");
             if (!Directory.Exists(folder))
             {
                 Directory.CreateDirectory(folder);
@@ -71,7 +71,7 @@ namespace dy.net.job
             {
                 //说明文件夹存在，检查里面有没有文件，如果已经有视频文件了，说明视频标题相同，那么应该重新创建文件夹,+id
 
-                folder = Path.Combine(storageBasePath, authorFolder, $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true)}" + "_" + item.AwemeId);
+                folder = Path.Combine(storageBasePath, authorFolder, $"{DouyinFileNameHelper.SanitizeLinuxFileName(DouyinFileNameHelper.StripHashtags(item.Desc), item.AwemeId, true)}" + "_" + item.AwemeId);
             }
             return folder;
         }
