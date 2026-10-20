@@ -696,7 +696,7 @@ namespace dy.net.job
                 var data = await FetchVideoData(cookie, cursor, followed, cate);
                 if (data == null || data.AwemeList == null || !data.AwemeList.Any())
                 {
-                    Serilog.Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-[{followed?.UperName ?? cate?.Name}] 没有发布新的视频");
+                    Serilog.Log.Warning($"[{cookie.UserName}][{VideoType.GetDesc()}]-[{followed?.UperName ?? cate?.Name}] 接口未返回视频列表(可能没有新视频，也可能是Cookie失效/触发风控)：响应为空={data == null}，StatusCode={data?.StatusCode}，HasMore={data?.HasMore}");
                     break;
                 }
 
