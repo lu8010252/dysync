@@ -582,6 +582,16 @@ namespace dy.net.Controllers
         {
             return ApiResult.Success(await douyinCommonService.GetDouyinDeleteVideos());
         }
+
+        /// <summary>
+        /// 恢复下载:把视频从「不再下载」黑名单移除,ids 为空则清空全部
+        /// </summary>
+        [HttpPost("vdelete/restore")]
+        public async Task<IActionResult> RestoreDeleteVideos(ReDownViedoDto dto)
+        {
+            var n = await douyinCommonService.RestoreDeleteVideos(dto?.Ids);
+            return ApiResult.Success($"已恢复 {n} 条,下次同步会重新下载");
+        }
         /// <summary>
         /// 根据博主id删除博主所有视频
         /// </summary>

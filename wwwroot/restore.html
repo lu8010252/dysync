@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>恢复下载</title>
+<style>
+body{margin:0;background:#141414;color:#eee;font-family:-apple-system,"Microsoft YaHei",sans-serif;padding:20px;max-width:900px;margin:auto}
+h1{font-size:20px}p{color:#999;font-size:14px;line-height:1.7}
+button{background:#1677ff;color:#fff;border:0;border-radius:6px;padding:9px 16px;font-size:14px;cursor:pointer;margin:0 8px 8px 0}
+button.red{background:#d9363e}button.gray{background:#444}
+.row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #262626;font-size:14px}
+.row .t{flex:1;word-break:break-all}.row small{color:#888;display:block;margin-top:3px}
+#msg{margin:10px 0;color:#7fd}
+</style></head><body>
+<h1>恢复下载(不再下载黑名单)</h1>
+<p>在 dysync 里「彻底删除」过的视频会被记入黑名单,之后同步永远跳过。勾选后点「恢复选中」,或「全部恢复」,下次同步会重新下载。<br>需要先在 dysync 登录过(本页读取登录状态)。</p>
+<div><button id="all" class="gray">全选/取消</button><button id="sel">恢复选中</button><button id="clr" class="red">全部恢复</button></div>
+<div id="msg"></div><div id="list">加载中…</div>
+<script>
+function token(){const m=document.cookie.match(/(?:^|;\s*)Authorization=([^;]*)/);return m?decodeURIComponent(m[1]):''}
+async function api(url,body){
+  const r=await fetch(url,{method:body?'POST':'GET',headers:Object.assign({Authorization:token()},body?{'Content-Type':'application/json'}:{}),body:body?JSON.stringify(body):undefined});
+  if(r.status===401){throw new Error('未登录,请先在 dysync 主页登录后再打开本页')}
+  return r.json();
+}
+let items=[];
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+async function load(){
+  try{
+    const j=await api('/api/video/vdelete/get');
+    items=j.data||[];
+    document.getElementById('list').innerHTML=items.length?items.map((x,i)=>
+      '<label class="row"><input type="checkbox" data-i="'+i+'"><span class="t">'+esc(x.videoTitle||x.viedoId)+'<small>'+esc(x.videoSavePath||'')+' · '+esc((x.deleteTime||'').replace('T',' ').slice(0,19))+'</small></span></label>').join('')
+      :'黑名单是空的。';
+  }catch(e){document.getElementById('list').textContent=e.message}
+}
+async function restore(ids){
+  try{const j=await api('/api/video/vdelete/restore',{ids});document.getElementById('msg').textContent=j.message||j.data||'完成';load()}
+  catch(e){document.getElementById('msg').textContent=e.message}
+}
+document.getElementById('sel').onclick=()=>{
+  const ids=[...document.querySelectorAll('#list input:checked')].map(c=>items[+c.dataset.i].id);
+  if(!ids.length){document.getElementById('msg').textContent='请先勾选';return}
+  restore(ids)};
+document.getElementById('clr').onclick=()=>{if(confirm('清空整个黑名单?'))restore([])};
+document.getElementById('all').onclick=()=>{const cs=[...document.querySelectorAll('#list input')];const on=cs.some(c=>!c.checked);cs.forEach(c=>c.checked=on)};
+load();
+</script></body></html>

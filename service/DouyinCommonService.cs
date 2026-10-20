@@ -216,6 +216,18 @@ namespace dy.net.service
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// 从「不再下载」黑名单中移除(恢复下载);ids 为空则清空全部
+        /// </summary>
+        public async Task<int> RestoreDeleteVideos(List<string> ids)
+        {
+            if (ids == null || ids.Count == 0)
+            {
+                return await sqlSugarClient.Deleteable<DouyinVideoDelete>().Where(x => true).ExecuteCommandAsync();
+            }
+            return await sqlSugarClient.Deleteable<DouyinVideoDelete>().Where(x => ids.Contains(x.Id)).ExecuteCommandAsync();
+        }
+
 
         /// <summary>
         /// 获取已经下载过视频的作者的保存路径
