@@ -11,20 +11,45 @@ permissions:
   packages: write
 
 jobs:
-  amd64:
+  image:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # 1. 前端(app/dist,发布时会被打进输出目录)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build frontend
+        working-directory: app
+        run: |
+          corepack enable
+          pnpm install --no-frozen-lockfile
+          pnpm exec vite build
+
+      # 2. 后端发布(framework-dependent,各架构通用)
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Publish
+        run: |
+          cp appsettings-arm.json appsettings.json
+          dotnet publish dy.net.csproj -c Release -o out
+          cp Dockerfile.ci out/Dockerfile.ci
+
+      # 3. 多平台镜像
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/setup-buildx-action@v3
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: Dockerfile
+          context: out
+          file: out/Dockerfile.ci
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/dysync:latest
