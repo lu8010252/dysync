@@ -1,8 +1,7 @@
 services:
   dysync:
-    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:latest
-    # ARM64 设备：注释上面的 x86 镜像，改用下面这一行。
-    # image: ccr.ccs.tencentyun.com/jianzhichu/dysync_arm:latest
+    # 多平台镜像(amd64/arm64/armv7),自动按设备架构拉取;首次需把 ghcr 上的 dysync 包设为 public
+    image: ghcr.io/lu8010252/dysync:latest
     container_name: dysync2026
     restart: unless-stopped
     ports:
