@@ -181,7 +181,11 @@ namespace dy.net.utils
 
                 if (xmlRoot == "episodedetails")
                 {
-                    root.Add(new XElement("episode", Path.GetFileNameWithoutExtension(filePath).Replace("S01E0","").Replace("S01E","")));
+                    var epMatch = System.Text.RegularExpressions.Regex.Match(Path.GetFileNameWithoutExtension(filePath), @"^S\d+E(\d+)");
+                    if (epMatch.Success)
+                        root.Add(new XElement("episode", int.Parse(epMatch.Groups[1].Value).ToString()));
+                    else
+                        root.Add(new XElement("episode", Path.GetFileNameWithoutExtension(filePath).Replace("S01E0","").Replace("S01E","")));
                     root.Add(new XElement("season", "1"));
 
                 }

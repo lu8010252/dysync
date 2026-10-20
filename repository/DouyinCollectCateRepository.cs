@@ -53,6 +53,7 @@ namespace dy.net.repository
                 if (dtoDict.TryGetValue(item.Id, out var dtocate))
                 {
                     item.Sync = dtocate.Sync;
+                    if (dtocate.NameMode.HasValue) item.NameMode = dtocate.NameMode.Value;
                     item.SaveFolder = string.IsNullOrWhiteSpace(dtocate.SaveFolder) ? DouyinFileNameHelper.SanitizeLinuxFileName(item.Name, item.Id, true) : dtocate.SaveFolder;
                     item.UpdateTime = DateTime.Now;
                 }
@@ -131,7 +132,7 @@ namespace dy.net.repository
                 if (toUpdateCates.Any())
                 {
                     updateCount = await Db.Updateable(toUpdateCates)
-                        .IgnoreColumns(x => new { x.Sync, x.CreateTime, x.CookieId })
+                        .IgnoreColumns(x => new { x.Sync, x.CreateTime, x.CookieId, x.NameMode })
                         .IgnoreNullColumns() // 忽略空值字段
                         .ExecuteCommandAsync();
                 }

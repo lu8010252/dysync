@@ -417,6 +417,26 @@ namespace dy.net.job
             return string.IsNullOrWhiteSpace(title) ? item.AwemeId : $"{title}_{item.AwemeId}";
         }
 
+        /// <summary>
+        /// 合集/短剧的标题精简:去掉 #话题;去掉"博主名：/合集名："这类前缀(冒号前的部分与博主昵称或合集名互相包含时才去);最多40字
+        /// </summary>
+        protected static string CleanEpisodeTitle(Aweme item, DouyinCollectCate cate)
+        {
+            var t = DouyinFileNameHelper.StripHashtags(item?.Desc ?? string.Empty) ?? string.Empty;
+            var idx = t.IndexOfAny(new[] { '：', ':' });
+            if (idx > 0 && idx < t.Length - 1)
+            {
+                var prefix = t.Substring(0, idx).Trim();
+                var rest = t.Substring(idx + 1).Trim();
+                bool Related(string name) => !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(prefix)
+                    && (name.Contains(prefix) || prefix.Contains(name));
+                if (rest.Length > 0 && (Related(item?.Author?.Nickname) || Related(cate?.Name)))
+                    t = rest;
+            }
+            if (t.Length > 40) t = t.Substring(0, 40).Trim();
+            return DouyinFileNameHelper.SanitizeLinuxFileName(t, "", false).Trim(' ', '.', '_');
+        }
+
         protected virtual string GetVideoFileName(DouyinCookie cookie, Aweme item, AppConfig config, DouyinCollectCate cate)
         {
             if (cate != null && cate.CateType == VideoTypeEnum.dy_custom_collect)
@@ -429,15 +449,26 @@ namespace dy.net.job
             {
                 if ((VideoType == VideoTypeEnum.dy_series || VideoType == VideoTypeEnum.dy_mix) && item.MixInfo?.Statis?.CurrentEpisode != null)
                 {
+                    // 命名方式(每个合集/短剧可单独设置):0=S01E集数 1=S01E集数+标题 2=仅标题
+                    var nameMode = cate?.NameMode ?? 0;
+                    var title = nameMode == 0 ? string.Empty : CleanEpisodeTitle(item, cate);
+
                     // 第一步：将 CurrentEpisode 转换为整数（兼容字符串/数字类型）
+                    string episodePart;
                     if (int.TryParse(item.MixInfo.Statis.CurrentEpisode.ToString(), out int episodeNum))
                     {
                         // 第二步：格式化数字，确保 1-9 补 0，10+ 保持原样
-                        string episodeStr = episodeNum.ToString("D2");
-                        return $"S01E{episodeStr}.mp4";
+                        episodePart = $"S01E{episodeNum:D2}";
                     }
-                    // 容错：如果转换失败，使用原始值（避免程序报错）
-                    return $"S01E{item.MixInfo.Statis.CurrentEpisode}.mp4";
+                    else
+                    {
+                        // 容错：如果转换失败，使用原始值（避免程序报错）
+                        episodePart = $"S01E{item.MixInfo.Statis.CurrentEpisode}";
+                    }
+
+                    if (nameMode == 2 && !string.IsNullOrWhiteSpace(title)) return $"{title}.mp4";
+                    if (nameMode == 1 && !string.IsNullOrWhiteSpace(title)) return $"{episodePart} {title}.mp4";
+                    return $"{episodePart}.mp4";
                 }
                 else
                 {
@@ -1293,6 +1324,13 @@ namespace dy.net.job
             // 拼接视频保存路径
             var savePath = Path.Combine(saveFolder, fileName);
             var savePath2 = Path.Combine(saveFolder, DateTime.Now.Ticks + ".mp4");
+
+            // 合集/短剧用了标题命名时,两个视频可能同名:到这里说明该视频没有记录,同名文件属于别的视频,加上视频ID避免被误判为已下载
+            if (File.Exists(savePath) && cate != null && (VideoType == VideoTypeEnum.dy_mix || VideoType == VideoTypeEnum.dy_series) && (cate.NameMode ?? 0) != 0)
+            {
+                fileName = $"{Path.GetFileNameWithoutExtension(fileName)}_{item.AwemeId}{Path.GetExtension(fileName)}";
+                savePath = Path.Combine(saveFolder, fileName);
+            }
 
             // 如果文件已存在，跳过
             if (File.Exists(savePath))

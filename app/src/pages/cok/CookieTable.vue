@@ -364,6 +364,7 @@ interface DrawerItem {
   cookieId: string;
   xId: string;
   total: number;
+  nameMode?: number;
 }
 
 const openCollectFolderSetModal = () => {
@@ -455,7 +456,7 @@ const loadDrawerData = () => {
     })
     .then((res) => {
       if (res.code === 0) {
-        const newData = res.data.data || [];
+        const newData = (res.data.data || []).map((x: any) => ({ ...x, nameMode: x.nameMode ?? 0 }));
         drawerDataList.value = [...drawerDataList.value, ...newData];
 
         drawerPagination.total = res.data.total || 0;
@@ -699,6 +700,15 @@ const switchdownCollect = (e: any) => {
           <div class="grid-item horizontal-item name">
             <label class="drawer-label">集数：</label>
             <span>{{ item.total || '0' }}</span>
+          </div>
+
+          <div class="grid-item horizontal-item name" v-if="drawerType === 'mix' || drawerType === 'series'">
+            <label class="drawer-label">命名：</label>
+            <a-radio-group v-model:value="item.nameMode" size="small" button-style="solid">
+              <a-radio-button :value="0">S01E集数</a-radio-button>
+              <a-radio-button :value="1">集数+标题</a-radio-button>
+              <a-radio-button :value="2">仅标题</a-radio-button>
+            </a-radio-group>
           </div>
 
           <div class="grid-item horizontal-item sync-switch">

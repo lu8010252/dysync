@@ -65,5 +65,11 @@ namespace dy.net.model.entity
         /// 总集数
         /// </summary>
         public int Total { get; set; }
+
+        /// <summary>
+        /// 文件命名方式(仅合集/短剧):0=S01E集数(默认) 1=S01E集数+标题 2=仅标题；空按0处理
+        /// </summary>
+        [SugarColumn(IsNullable = true)]
+        public int? NameMode { get; set; }
     }
 }
