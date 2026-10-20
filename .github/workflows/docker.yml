@@ -23,7 +23,7 @@ jobs:
       - name: Build frontend
         working-directory: app
         run: |
-          corepack enable
+          npm i -g pnpm@9
           pnpm install --no-frozen-lockfile
           pnpm exec vite build
 
