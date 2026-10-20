@@ -210,6 +210,16 @@ namespace dy.net.job
         /// <returns>创建的视频保存文件夹路径</returns>
         protected virtual string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate)
         {
+            // 不刮削:不再为每个视频单独建文件夹,直接放在博主文件夹里
+            if (config.CloseNfo)
+            {
+                var author = string.IsNullOrWhiteSpace(item?.Author?.Nickname) && string.IsNullOrWhiteSpace(item?.Author?.Uid)
+                    ? "未知博主"
+                    : DouyinFileNameHelper.SanitizeLinuxFileName(item.Author.Nickname, item.Author.Uid, true);
+                var shared = Path.Combine(GetStorageBasePath(cookie, config), author);
+                if (!Directory.Exists(shared)) Directory.CreateDirectory(shared);
+                return shared;
+            }
             var subFolder = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true);
             var folder = Path.Combine(GetStorageBasePath(cookie, config), subFolder);
             if (!Directory.Exists(folder))
@@ -395,13 +405,25 @@ namespace dy.net.job
         /// <param name="config">配置信息</param>
         /// <param name="cate"></param>
         /// <returns>生成的视频文件名</returns>
+        /// <summary>
+        /// 默认视频文件名(未设置命名模板时):去掉 #话题 后的标题(最多40字)_视频ID,没有标题则只用ID
+        /// </summary>
+        protected static string DefaultVideoBaseName(Aweme item)
+        {
+            var title = System.Text.RegularExpressions.Regex.Replace(item?.Desc ?? string.Empty, @"#\S+", " ");
+            title = System.Text.RegularExpressions.Regex.Replace(title, @"\s+", " ").Trim();
+            if (title.Length > 40) title = title.Substring(0, 40).Trim();
+            title = DouyinFileNameHelper.SanitizeLinuxFileName(title, "", false).Trim(' ', '.', '_');
+            return string.IsNullOrWhiteSpace(title) ? item.AwemeId : $"{title}_{item.AwemeId}";
+        }
+
         protected virtual string GetVideoFileName(DouyinCookie cookie, Aweme item, AppConfig config, DouyinCollectCate cate)
         {
             if (cate != null && cate.CateType == VideoTypeEnum.dy_custom_collect)
             {
                 if (item.Video != null && item.Video.BitRate != null)
-                    return $"{item.AwemeId}.{item.Video.BitRate.FirstOrDefault().Format}";
-                return $"{item.AwemeId}.mp4";
+                    return $"{DefaultVideoBaseName(item)}.{item.Video.BitRate.FirstOrDefault().Format}";
+                return $"{DefaultVideoBaseName(item)}.mp4";
             }
             else
             {
@@ -471,7 +493,7 @@ namespace dy.net.job
                     }
                     else
                     {
-                        fileName = $"{item.AwemeId}.{Format}";
+                        fileName = $"{DefaultVideoBaseName(item)}.{Format}";
                     }
                     //}
                     return fileName;

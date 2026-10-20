@@ -19,6 +19,13 @@ namespace dy.net.job
             if (cate != null)
             {
                 var storageBasePath = GetStorageBasePath(cookie, config);
+                // 不刮削:视频直接放在收藏夹文件夹里
+                if (config.CloseNfo)
+                {
+                    var shared = Path.Combine(storageBasePath, DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, "", true));
+                    if (!Directory.Exists(shared)) Directory.CreateDirectory(shared);
+                    return shared;
+                }
                 var folder = Path.Combine(storageBasePath, DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, "", true), DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true));
                 if (!Directory.Exists(folder))
                 {

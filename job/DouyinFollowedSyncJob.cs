@@ -58,6 +58,9 @@ namespace dy.net.job
             if (!Directory.Exists(rootFolder)) Directory.CreateDirectory(rootFolder);
             #endregion
 
+            // 不刮削:视频直接放在博主文件夹里,不再每个视频一个文件夹
+            if (config.CloseNfo) return rootFolder;
+
             var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true);
             var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName);
             var fileNameFolder = string.IsNullOrWhiteSpace(existingName) ? sampleName : existingName;
@@ -126,7 +129,7 @@ namespace dy.net.job
             }
             else
             {
-                fileName = $"{item.AwemeId}.{Format}";
+                fileName = $"{DefaultVideoBaseName(item)}.{Format}";
             }
             //}
             return fileName;

@@ -62,6 +62,13 @@ namespace dy.net.job
 
             // 4. 简化文件夹路径拼接+存在判断（核心逻辑不变）
             var storageBasePath = GetStorageBasePath(cookie, config);
+            // 不刮削:视频直接放在博主文件夹里
+            if (config.CloseNfo)
+            {
+                var shared = Path.Combine(storageBasePath, authorFolder);
+                if (!Directory.Exists(shared)) Directory.CreateDirectory(shared);
+                return shared;
+            }
             string folder = Path.Combine(storageBasePath, authorFolder, videoFolderName);
             if (Directory.Exists(folder))
             {

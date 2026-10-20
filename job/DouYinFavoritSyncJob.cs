@@ -55,6 +55,13 @@ namespace dy.net.job
                 authorFolder = $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Author?.Nickname, item.Author?.Uid, true)}";
             }
             var storageBasePath = GetStorageBasePath(cookie, config);
+            // 不刮削:视频直接放在博主文件夹里
+            if (config.CloseNfo)
+            {
+                var shared = Path.Combine(storageBasePath, authorFolder);
+                if (!Directory.Exists(shared)) Directory.CreateDirectory(shared);
+                return shared;
+            }
             var folder = Path.Combine(storageBasePath, authorFolder, $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true)}");
             if (!Directory.Exists(folder))
             {
