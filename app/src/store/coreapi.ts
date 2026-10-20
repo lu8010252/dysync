@@ -372,6 +372,10 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+  //恢复下载:从不再下载黑名单移除,ids 为空则清空全部
+  async function RestoreDeleteViedos(ids: string[]) {
+    return http.request<any, Response<any>>('/api/video/vdelete/restore', 'post_json', { ids });
+  }
   //删除博主全部视频
   async function DeleteByAuthor(param: string) {
     return http.request<any, Response<any>>('/api/video/vdelete/byauthor/' + param, 'get').then(r => {
@@ -801,6 +805,7 @@ export const useApiStore = defineStore('coreapi', () => {
     OpenOrCloseSync,
     OpenOrCloseFullSync,
     ReDownViedos,
-    DeleteVideo
+    DeleteVideo,
+    RestoreDeleteViedos
   };
 });
