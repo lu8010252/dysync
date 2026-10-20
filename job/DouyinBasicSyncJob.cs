@@ -825,6 +825,17 @@ namespace dy.net.job
         /// <returns>处理后的视频实体列表</returns>
         protected async Task<(List<DouyinVideo> videos, int currentCount)> ProcessVideoList(int syncCount1, DouyinCookie cookie, DouyinVideoInfoResponse data, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null)
         {
+            var skipStats = new Dictionary<string, int>();
+            var result = await ProcessVideoListCore(syncCount1, cookie, data, config, followed, cate, skipStats);
+            if (skipStats.Count > 0)
+            {
+                Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-[{followed?.UperName ?? cate?.Name}] 本页跳过统计：{string.Join("；", skipStats.Select(kv => $"{kv.Key}×{kv.Value}"))}");
+            }
+            return result;
+        }
+
+        private async Task<(List<DouyinVideo> videos, int currentCount)> ProcessVideoListCore(int syncCount1, DouyinCookie cookie, DouyinVideoInfoResponse data, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate, Dictionary<string, int> skipStats)
+        {
             int syncCount = 0;
             var videos = new List<DouyinVideo>();
             var awemeIds = data.AwemeList
@@ -861,7 +872,7 @@ namespace dy.net.job
                 //判断视频是否是强制删除且不再下载的视频
                 if (deletedAwemeIds.Contains(item.AwemeId))
                 {
-                    Log.Debug($"[{VideoType.GetDesc()}][跳过原因:黑名单]{item.AwemeId}-[{item.Desc}]");
+                    skipStats["黑名单"] = skipStats.GetValueOrDefault("黑名单") + 1;
                     continue;
                 }
 
@@ -871,7 +882,7 @@ namespace dy.net.job
                 // 用户自行移动或整理文件时，只要数据库已有记录就视为已同步，避免因原路径失效而重复下载。
                 if (config.SkipFileExistenceCheck && exitVideo != null)
                 {
-                    Log.Debug($"[{VideoType.GetDesc()}][跳过原因:已开启忽略文件存在检查且数据库已有记录]{item.AwemeId}-[{item.Desc}]");
+                    skipStats["忽略文件存在检查"] = skipStats.GetValueOrDefault("忽略文件存在检查") + 1;
                     continue;
                 }
 
@@ -882,7 +893,7 @@ namespace dy.net.job
                 bool Goon = AutoDistinct(config, exitVideo, cookie, existingFileExists);
                 if (!Goon)
                 {
-                    Log.Debug($"[{VideoType.GetDesc()}][跳过原因:去重(已存在同级或更高优先级视频)]{item.AwemeId}-[{item.Desc}]，已有记录类型={exitVideo?.ViedoType}，路径={exitVideo?.VideoSavePath}");
+                    skipStats["去重(已有同级或更高优先级且文件存在)"] = skipStats.GetValueOrDefault("去重(已有同级或更高优先级且文件存在)") + 1;
                     continue;
                 }
 
@@ -900,7 +911,7 @@ namespace dy.net.job
                         //如果当前时正在下载关注列表的视频，但是已经存在合集下载过了，那么跳过
                         if (VideoType == VideoTypeEnum.dy_follows && exitVideo.ViedoType == VideoTypeEnum.dy_mix)
                         {
-                            Log.Debug($"[{VideoType.GetDesc()}][跳过原因:已在合集中下载过且文件存在]{item.AwemeId}-[{item.Desc}]，路径={exitVideo.VideoSavePath}");
+                            skipStats["已在合集下载过"] = skipStats.GetValueOrDefault("已在合集下载过") + 1;
                             continue;
                         }
                         else
