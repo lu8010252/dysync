@@ -713,7 +713,9 @@ namespace dy.net.job
                 hasMore = ShouldContinueSync(data, followed, config);
 
                 // 处理视频列表
+                Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-[{followed?.UperName ?? cate?.Name}] 本页获取{data.AwemeList.Count}条，HasMore={data.HasMore}，继续翻页={hasMore}");
                 (List<DouyinVideo> videos, int syncCountx) = await ProcessVideoList(syncCount, cookie, data, config, followed, cate);
+                Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-[{followed?.UperName ?? cate?.Name}] 本页处理完成，新下载{syncCountx}条");
                 if (videos != null && videos.Any())
                 {
                     // 保存视频信息到数据库
@@ -859,7 +861,7 @@ namespace dy.net.job
                 //判断视频是否是强制删除且不再下载的视频
                 if (deletedAwemeIds.Contains(item.AwemeId))
                 {
-                    //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频-{item.AwemeId}-[{item.Desc}]已被标记为强制删除，跳过下载");
+                    Log.Debug($"[{VideoType.GetDesc()}][跳过原因:黑名单]{item.AwemeId}-[{item.Desc}]");
                     continue;
                 }
 
@@ -869,6 +871,7 @@ namespace dy.net.job
                 // 用户自行移动或整理文件时，只要数据库已有记录就视为已同步，避免因原路径失效而重复下载。
                 if (config.SkipFileExistenceCheck && exitVideo != null)
                 {
+                    Log.Debug($"[{VideoType.GetDesc()}][跳过原因:已开启忽略文件存在检查且数据库已有记录]{item.AwemeId}-[{item.Desc}]");
                     continue;
                 }
 
@@ -879,11 +882,15 @@ namespace dy.net.job
                 bool Goon = AutoDistinct(config, exitVideo, cookie, existingFileExists);
                 if (!Goon)
                 {
+                    Log.Debug($"[{VideoType.GetDesc()}][跳过原因:去重(已存在同级或更高优先级视频)]{item.AwemeId}-[{item.Desc}]，已有记录类型={exitVideo?.ViedoType}，路径={exitVideo?.VideoSavePath}");
                     continue;
                 }
 
                 if (!await EnsureStorageCapacityAsync(cookie, config))
+                {
+                    Log.Debug($"[{VideoType.GetDesc()}][跳过原因:存储空间不足]{item.AwemeId}-[{item.Desc}]");
                     continue;
+                }
 
                 if (exitVideo != null)
                 {
@@ -893,6 +900,7 @@ namespace dy.net.job
                         //如果当前时正在下载关注列表的视频，但是已经存在合集下载过了，那么跳过
                         if (VideoType == VideoTypeEnum.dy_follows && exitVideo.ViedoType == VideoTypeEnum.dy_mix)
                         {
+                            Log.Debug($"[{VideoType.GetDesc()}][跳过原因:已在合集中下载过且文件存在]{item.AwemeId}-[{item.Desc}]，路径={exitVideo.VideoSavePath}");
                             continue;
                         }
                         else
@@ -915,8 +923,10 @@ namespace dy.net.job
                         //判断如果文件路径="/" 说明是仅下载图片的记录，不处理，直接跳过也不用删除记录
                         if (exitVideo.OnlyImgOrOnlyMp3 || (exitVideo.VideoUrl == "/" && exitVideo.IsMergeVideo == 1))
                         {
+                            Log.Debug($"[{VideoType.GetDesc()}][跳过原因:数据库记录为仅图片/仅音频的图文作品，文件缺失也不会重下]{item.AwemeId}-[{item.Desc}]，路径={exitVideo.VideoSavePath}");
                             continue;
                         }
+                        Log.Debug($"[{VideoType.GetDesc()}][文件缺失，删除旧记录并重新下载]{item.AwemeId}-[{item.Desc}]，原路径={exitVideo.VideoSavePath}");
                         //文件不存在，直接删掉原始记录
                         await douyinVideoService.DeleteById(exitVideo.Id);
                     }
@@ -942,6 +952,7 @@ namespace dy.net.job
                 }
                 else
                 {
+                    Log.Debug($"[{VideoType.GetDesc()}][ProcessSingleVideo未产出视频，转图文/动态视频处理]{item.AwemeId}-[{item.Desc}]，图片数={item.Images?.Count ?? 0}，DownImageVideo={config.DownImageVideo}，DownMp3={config.DownMp3}，DownImage={config.DownImage}");
                     //处理多个视频-组合的图文视频--类似动图。
                     List<DouyinMergeVideoDto> dynamicVideoUrls = new List<DouyinMergeVideoDto>();
                     // 当需要下载动态视频时，获取其他URL
@@ -1244,7 +1255,11 @@ namespace dy.net.job
         protected async Task<DouyinVideo> ProcessSingleVideo(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null)
         {
             // 检查视频数据是否有效
-            if (!IsAwemeValid(item)) return null;
+            if (!IsAwemeValid(item))
+            {
+                Log.Debug($"[{VideoType.GetDesc()}][跳过原因:视频数据无效(IsAwemeValid=false,可能是图文/已下架/无视频流)]{item?.AwemeId}-[{item?.Desc}]");
+                return null;
+            }
             // 获取视频最佳下载地址
             var v = GetBestMatchedVideoUrl(item, config);
 
@@ -1271,7 +1286,7 @@ namespace dy.net.job
             // 如果文件已存在，跳过
             if (File.Exists(savePath))
             {
-                //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频[{DouyinFileNameHelper.SanitizePath(item.Desc)}]已存在，跳过下载.");
+                Log.Debug($"[{VideoType.GetDesc()}][跳过原因:目标文件已存在，不会重新下载]{item.AwemeId}-[{item.Desc}]，路径={savePath}");
                 return null;
             }
 
