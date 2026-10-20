@@ -154,65 +154,55 @@ FN 桌面版不使用 Docker 挂载：扩展存储根目录直接填写设备上
 
 ### Docker Compose 运行（推荐）
 
-项目根目录已提供完整的 `docker-compose.yml`，包含应用和扫码浏览器服务。部署前请按实际环境修改 NAS 卷路径、数据库连接信息；ARM64 设备请切换到 ARM 镜像。确认配置后，在项目根目录执行：
+项目根目录已提供完整的 `docker-compose.yml`，包含应用（扫码浏览器服务为可选）。部署前请按实际环境修改卷路径；默认使用 SQLite（`DB_TYPE=Sqlite`），无需额外部署数据库，如需 MySQL/PostgreSQL 再改用 `DB_TYPE`/`DB_HOST` 等变量；ARM64 设备请切换到 ARM 镜像。确认配置后，在项目根目录执行：
 
 <span style="color: red; font-weight: bold;">需要注意：unraid玩家可能需要增加 user配置 --user 1000:100</span>
 
 ```bash
 services:
   dysync:
-    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:latest
-    # ARM64 设备：注释上面的 x86 镜像，改用下面这一行。
-    # image: ccr.ccs.tencentyun.com/jianzhichu/dysync_arm:latest
-    container_name: dysync2026
+    # 多平台镜像(amd64/arm64/armv7),自动按设备架构拉取;首次需把 ghcr 上的 dysync 包设为 public
+    image: ghcr.io/lu8010252/dysync:latest
+    container_name: dysync_latest
     restart: unless-stopped
     ports:
       - "10101:10101"
     environment:
-      # 扫码登录用的 Chromium 调试地址；浏览器服务与本服务共享网络命名空间。
-      - QrBrowserUrl=http://127.0.0.1:9222
-      - COMPlus_GCServer=0
-      - COMPlus_GCConserveMemory=1
-      # 按实际数据库设置修改以下连接信息。
-      - DB_TYPE=MySql
-      - DB_HOST=192.168.2.11
-      - DB_PORT=3306
-      - DB_NAME=dysync
-      - DB_USER=dysync
-      - DB_PASSWORD=111
+      # 使用 SQLite(数据库文件为 /app/db/dy.sqlite,无需 MySQL,与旧版数据库兼容)。
+      # 显式指定后,登录页不会再弹出"选择数据库"引导。
+      - DB_TYPE=Sqlite
+      # .NET 内存优化参数,适配低内存环境
+      - COMPlus_GCHeapHardLimit=154857600   # 限制 GC 堆内存约为 150MB
+      - COMPlus_GCServer=0                  # 使用工作站 GC 模式
+      - COMPlus_GCConserveMemory=1          # 强制 GC 回收后将内存归还给系统
+      # 如需启用下方 dysync-chrome 扫码登录,取消注释:
+      # - QrBrowserUrl=http://127.0.0.1:9222
     volumes:
-      # NAS 上的持久化数据库、音频和媒体目录；按实际路径修改。
-      - /vol2/1000/media/dysync/db:/app/db
-      - /vol2/1000/media/dysync/mp3:/app/mp3
-      - /vol2/1000/media/dysync/dy1/coll:/app/collect
-      - /vol2/1000/media/dysync/dy1/fav:/app/favorite
-      - /vol2/1000/media/dysync/dy1/up:/app/uper
-      - /vol2/1000/media/dysync/dy1/mix:/app/mix
-      - /vol2/1000/media/dysync/dy1/series:/app/series
-      # 更多账号可照此增加路径映射，例如：
-      - /vol2/1000/media/dysync/dy2/collect:/app/collect2
-      - /vol2/1000/media/dysync/dy2/fav:/app/favorite2
-      - /vol2/1000/media/dysync/dy2/up:/app/uper2
+      # 与旧版 compose 保持一致,直接沿用原来的目录即可
+      - /home/Video/db:/app/db             # 数据库文件(配置与同步记录,dy.sqlite)
+      - /home/Video/mp3:/app/mp3           # 备用音频目录
+      - /home/Video/data:/app/data         # 视频/图文等媒体文件存储总目录
     network_mode: bridge
     dns:
       - 223.5.5.5
       - 114.114.114.114
-    # 可选：Linux NAS 支持 VAAPI 且存在 /dev/dri 时启用硬件转码。
+    deploy:
+      resources:
+        limits:
+          memory: 250m                     # 容器整体内存上限
+    # 可选:Linux 支持 VAAPI 且存在 /dev/dri 时启用硬件转码。
     # devices:
     #   - /dev/dri:/dev/dri
 
-  dysync-chrome:
-    image: chromedp/headless-shell:latest
-    container_name: dysync-chrome
-    restart: unless-stopped
-    depends_on:
-      - dysync
-    # 只在 dysync 的容器网络内开放调试端口，不要映射到 NAS 主机。
-    network_mode: "service:dysync"
-    # 如需验证码画面显示中文，可挂载包含 .ttf/.otf/.ttc 的字体目录。
-    # volumes:
-    #   - /vol2/1000/media/dysync/fonts:/usr/share/fonts/truetype/dysync:ro
-
+  # 可选:扫码登录用的浏览器服务。内存紧张或已有 Cookie 可不启用(整段保持注释)。
+  # dysync-chrome:
+  #   image: chromedp/headless-shell:latest
+  #   container_name: dysync-chrome
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - dysync
+  #   # 只在 dysync 的容器网络内开放调试端口,不要映射到主机。
+  #   network_mode: "service:dysync"
 ```
 
 
