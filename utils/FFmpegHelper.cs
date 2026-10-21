@@ -308,7 +308,9 @@ namespace dy.net.utils
                     {
                         "-c:v", VideoCodec,
                         "-preset", VideoPreset,
-                        "-crf", $"{VideoCrf}"
+                        "-crf", $"{VideoCrf}",
+                        // 限制软编码线程数，避免 ffmpeg 吃满所有核心（环境变量 FFMPEG_THREADS 可调，默认 2）
+                        "-threads", FfmpegThreads
                     });
                     break;
             }
@@ -345,6 +347,11 @@ namespace dy.net.utils
         private Process _ffmpegProcess;
         private CancellationTokenSource _cancellationTokenSource;
 
+        private static readonly string FfmpegThreads =
+            int.TryParse(Environment.GetEnvironmentVariable("FFMPEG_THREADS"), out var t) && t > 0
+                ? t.ToString(CultureInfo.InvariantCulture)
+                : "2";
+
         // 视频参数
         public int VideoWidth { get; set; } = 1080;
         public int VideoHeight { get; set; } = 1920;
@@ -353,7 +360,7 @@ namespace dy.net.utils
 
         // 编码参数
         public string VideoCodec { get; set; } = "libx264";
-        public string VideoPreset { get; set; } = "medium";
+        public string VideoPreset { get; set; } = "veryfast"; // 原 medium：CPU 占用高、lookahead 内存大；veryfast 速度快数倍
         public int VideoCrf { get; set; } = 23;
         public string AudioCodec { get; set; } = "aac";
         public string AudioBitrate { get; set; } = "192k";
@@ -469,7 +476,7 @@ namespace dy.net.utils
 
                 // ===== 改动点 C（路线 3 核心）：并行预处理所有图片到目标尺寸 jpg =====
                 // 并发度取 CPU 数的一半，上限 8，避免与后续主 FFmpeg 抢 CPU
-                int maxConcurrency = Math.Max(2, Math.Min(Environment.ProcessorCount / 2, 8));
+                int maxConcurrency = Math.Max(1, Math.Min(Environment.ProcessorCount / 2, 2));
                 using var semaphore = new SemaphoreSlim(maxConcurrency, maxConcurrency);
 
                 var preprocessTasks = imageList.Select(async (img, i) =>
@@ -551,7 +558,7 @@ namespace dy.net.utils
                     arguments.AddRange(new[]
                     {
                         "-loop", "1",
-                        "-framerate", OutputFrameRate.ToString(CultureInfo.InvariantCulture),
+                        "-framerate", "10", // 单张静态图无需 30fps，降到 10 可省约 2/3 编码量
                         "-i", preprocessedPaths[0]
                     });
                 }
@@ -987,6 +994,8 @@ namespace dy.net.utils
             try
             {
                 _ffmpegProcess.Start();
+                // 降低 ffmpeg 优先级，避免挤占面板/其他容器的 CPU
+                try { _ffmpegProcess.PriorityClass = ProcessPriorityClass.BelowNormal; } catch { }
                 _ffmpegProcess.BeginErrorReadLine();
 
                 using (_cancellationTokenSource.Token.Register(() =>
