@@ -16,6 +16,7 @@ services:
       - COMPlus_GCConserveMemory=1          # 强制 GC 回收后将内存归还给系统
       - FFMPEG_THREADS=2                    # 图文合成视频时 ffmpeg 软编码线程数(越小越省 CPU/内存,越慢)
       - DOTNET_TieredPGO=0                  # 关闭分层 PGO 插桩,降低运行时 CPU 与内存
+      - DOTNET_GCgen0MaxBudget=1000000      # 限制年轻代预算为 16MB(十六进制,默认由 CPU 缓存大小决定,大缓存 CPU 上会让空闲内存虚高)
       # 如需启用下方 dysync-chrome 扫码登录,取消注释:
       # - QrBrowserUrl=http://127.0.0.1:9222
     volumes:
