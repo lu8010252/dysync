@@ -102,7 +102,10 @@ public class FFmpegHelperTests : IDisposable
 
         var args = InvokeAppendVideoEncoderArgs(_helper);
 
-        Assert.Equal(new[] { "-c:v", "libx264", "-preset", "medium", "-crf", "23" }, args);
+        // 软编码默认 veryfast 预设,并限制线程数(-threads,值取自环境变量 FFMPEG_THREADS,默认 2)
+        Assert.Equal(new[] { "-c:v", "libx264", "-preset", "veryfast", "-crf", "23" }, args.Take(6).ToArray());
+        Assert.Equal("-threads", args[6]);
+        Assert.True(int.Parse(args[7]) > 0);
     }
 
     [Fact]
