@@ -11,7 +11,7 @@ services:
       # 显式指定后,登录页不会再弹出"选择数据库"引导。
       - DB_TYPE=Sqlite
       # .NET 内存优化参数,适配低内存环境
-      - COMPlus_GCHeapHardLimit=154857600   # 限制 GC 堆内存约为 150MB
+      - COMPlus_GCHeapHardLimit=6400000     # 限制 GC 堆内存为 100MB(注意:GC 环境变量按十六进制解析,0x6400000=100MB;原来的 154857600 会被当成约 5.5GB,等于没限制)
       - COMPlus_GCServer=0                  # 使用工作站 GC 模式
       - COMPlus_GCConserveMemory=1          # 强制 GC 回收后将内存归还给系统
       - FFMPEG_THREADS=2                    # 图文合成视频时 ffmpeg 软编码线程数(越小越省 CPU/内存,越慢)
