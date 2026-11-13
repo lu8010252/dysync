@@ -1016,7 +1016,7 @@ namespace dy.net.job
         protected async Task<(List<DouyinVideo> videos, int currentCount)> ProcessVideoList(int syncCount1, DouyinCookie cookie, DouyinVideoInfoResponse data, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null, bool completePage = false)
         {
             var skipStats = new Dictionary<string, int>();
-            var result = await ProcessVideoListCore(syncCount1, cookie, data, config, followed, cate, skipStats);
+            var result = await ProcessVideoListCore(syncCount1, cookie, data, config, followed, cate, skipStats, completePage);
             if (skipStats.Count > 0)
             {
                 Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-[{followed?.UperName ?? cate?.Name}] 本页跳过统计：{string.Join("；", skipStats.Select(kv => $"{kv.Key}×{kv.Value}"))}");
@@ -1024,7 +1024,7 @@ namespace dy.net.job
             return result;
         }
 
-        private async Task<(List<DouyinVideo> videos, int currentCount)> ProcessVideoListCore(int syncCount1, DouyinCookie cookie, DouyinVideoInfoResponse data, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate, Dictionary<string, int> skipStats)
+        private async Task<(List<DouyinVideo> videos, int currentCount)> ProcessVideoListCore(int syncCount1, DouyinCookie cookie, DouyinVideoInfoResponse data, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate, Dictionary<string, int> skipStats, bool completePage = false)
         {
             int syncCount = 0;
             var videos = new List<DouyinVideo>();
