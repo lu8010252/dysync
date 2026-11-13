@@ -17,6 +17,7 @@
       <!-- debug/error单选按钮 -->
       <a-form-item class="toolbar-item">
         <a-radio-group class="log-type-radio-group" v-model:value="typeValue" @change="typeChange" button-style="solid">
+          <a-radio-button value="info">INFO</a-radio-button>
           <a-radio-button value="debug">DEBUG</a-radio-button>
           <a-radio-button value="error">ERROR</a-radio-button>
         </a-radio-group>
@@ -32,11 +33,11 @@
     </a-form>
 
     <div class="container">
-      <a-card title="" :bordered="true" class="log-card" :class="{ 'log-error': typeValue === 'error' }">
+      <a-card title="" :bordered="true" class="log-card" :class="{ 'log-error': typeValue === 'error', 'log-info': typeValue === 'info' }">
         <div class="log-card-header">
           <div class="log-card-title">
             <span class="log-status-dot"></span>
-            <span>{{ typeValue === 'error' ? '错误日志' : '调试日志' }}</span>
+            <span>{{ typeValue === 'error' ? '错误日志' : typeValue === 'info' ? '信息日志' : '调试日志' }}</span>
           </div>
           <span class="log-date-badge">{{ currentDateText }}</span>
         </div>
@@ -56,9 +57,10 @@ import { message } from 'ant-design-vue';
 dayjs.locale('zh-cn');
 
 const currentDate = ref<Dayjs>(dayjs());
-const typeValue = ref<string>('debug');
+const typeValue = ref<string>('info');
 const iframeUrl = ref<string>('');
 const logs = ref<string>('');
+let logRequestId = 0;
 
 const currentDateText = computed(() => {
   return currentDate.value.format('YYYYMMDD');
@@ -95,11 +97,16 @@ const formatLogTime = (logContent: string) => {
 };
 
 const loadLogs = async () => {
+  const requestId = ++logRequestId;
+  const requestedPath = iframeUrl.value;
   try {
-    const rawLog = await useApiStore().apiGetLogs(iframeUrl.value);
+    const rawLog = await useApiStore().apiGetLogs(requestedPath);
+    // 忽略较早发出的请求，避免快速切换日期或级别时覆盖当前日志。
+    if (requestId !== logRequestId) return;
     const formattedLog = formatLogTime(String(rawLog ?? ''));
     logs.value = formattedLog.split('\n').reverse().join('\n');
   } catch (err) {
+    if (requestId !== logRequestId) return;
     console.error('加载日志失败：', err);
     logs.value = '日志加载失败，请稍后重试';
   }
@@ -243,6 +250,18 @@ onMounted(() => {
 
 :deep(.log-type-radio-group .ant-radio-button-wrapper:last-child) {
   border-radius: 0 10px 10px 0 !important;
+}
+
+:deep(.log-type-radio-group .ant-radio-button-wrapper:nth-child(2).ant-radio-button-wrapper-checked) {
+  color: #ffffff !important;
+  border-color: #7c3aed !important;
+  background: #7c3aed !important;
+  box-shadow: -1px 0 0 0 #7c3aed !important;
+}
+
+:deep(.log-type-radio-group .ant-radio-button-wrapper:nth-child(2).ant-radio-button-wrapper-checked:hover) {
+  border-color: #6d28d9 !important;
+  background: #6d28d9 !important;
 }
 
 :deep(.log-type-radio-group .ant-radio-button-wrapper:first-child.ant-radio-button-wrapper-checked) {

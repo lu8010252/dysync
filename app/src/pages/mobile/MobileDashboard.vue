@@ -140,8 +140,8 @@
 
         <div class="log-filter-shell">
           <div class="log-filter">
-            <button class="filter-btn" :class="{ active: logFilter === 'all' }" @click="logFilter = 'all'">
-              全部 <span>{{ logs.length }}</span>
+            <button class="filter-btn" :class="{ active: logFilter === 'info' }" @click="logFilter = 'info'">
+              INFO <span>{{ infoLogCount ?? 0 }}</span>
             </button>
             <button class="filter-btn" :class="{ active: logFilter === 'debug' }" @click="logFilter = 'debug'">
               DEBUG <span>{{ debugLogCount ?? 0 }}</span>
@@ -466,7 +466,7 @@ interface Category {
 }
 interface LogItem {
   id: string;
-  type: 'DEBUG' | 'ERROR';
+  type: 'INFO' | 'DEBUG' | 'ERROR';
   time: string;
   message: string;
   file: string;
@@ -523,7 +523,7 @@ const graphicVideoSize = ref<string>('0.00');
 const videoMixSize = ref<string>('0.00');
 const videoSeriesSize = ref<string>('0.00');
 const activeTab = ref<string>('dashboard');
-const logFilter = ref<string>('all');
+const logFilter = ref<string>('info');
 const logs = ref<LogItem[]>([]);
 const showLogModal = ref<boolean>(false);
 const currentLog = ref<LogItem | null>(null);
@@ -541,6 +541,10 @@ const normalizeLogType = (type?: string): string => {
     .trim()
     .toUpperCase();
 
+  if (value === 'INF' || value.includes('INFO')) {
+    return 'INFO';
+  }
+
   if (value === 'ERR' || value.includes('ERROR') || value.includes('错误') || value.includes('异常')) {
     return 'ERROR';
   }
@@ -555,7 +559,7 @@ const normalizeLogType = (type?: string): string => {
 const getLogType = (log?: Partial<LogItem> & Record<string, any>): string => {
   const directType = normalizeLogType(log?.type ?? log?.logType ?? log?.level ?? log?.logLevel);
 
-  if (directType === 'DEBUG' || directType === 'ERROR') {
+  if (directType === 'INFO' || directType === 'DEBUG' || directType === 'ERROR') {
     return directType;
   }
 
@@ -568,6 +572,10 @@ const getLogType = (log?: Partial<LogItem> & Record<string, any>): string => {
     return 'ERROR';
   }
 
+  if (fileIdentity.includes('INFO')) {
+    return 'INFO';
+  }
+
   if (fileIdentity.includes('DEBUG')) {
     return 'DEBUG';
   }
@@ -577,6 +585,10 @@ const getLogType = (log?: Partial<LogItem> & Record<string, any>): string => {
 
 const debugLogCount = computed(() =>
   logs.value.reduce((count, log) => count + (getLogType(log) === 'DEBUG' ? 1 : 0), 0)
+);
+
+const infoLogCount = computed(() =>
+  logs.value.reduce((count, log) => count + (getLogType(log) === 'INFO' ? 1 : 0), 0)
 );
 
 const errorLogCount = computed(() =>
@@ -1710,6 +1722,9 @@ html.dark-mode .enable-sync-label {
 .log-item.debug {
   border-left: 4px solid #2196f3;
 }
+.log-item.info {
+  border-left: 4px solid #22a45a;
+}
 .log-item.error {
   border-left: 4px solid #f44336;
 }
@@ -1729,6 +1744,10 @@ html.dark-mode .enable-sync-label {
 .log-type.debug {
   background-color: rgba(33, 150, 243, 0.1);
   color: #2196f3;
+}
+.log-type.info {
+  background-color: rgba(34, 164, 90, 0.1);
+  color: #178844;
 }
 .log-type.error {
   background-color: rgba(244, 67, 54, 0.1);
@@ -3725,6 +3744,9 @@ html.dark-mode .empty-container {
 .log-item.debug::before {
   background: linear-gradient(180deg, #42a5f5, #1976d2);
 }
+.log-item.info::before {
+  background: linear-gradient(180deg, #4ade80, #16a34a);
+}
 
 .log-item.error::before {
   background: linear-gradient(180deg, #ef5350, #d32f2f);
@@ -3747,6 +3769,10 @@ html.dark-mode .empty-container {
 .log-item.debug .log-item-icon {
   color: #1976d2;
   background: rgba(33, 150, 243, 0.1);
+}
+.log-item.info .log-item-icon {
+  color: #178844;
+  background: rgba(34, 164, 90, 0.1);
 }
 
 .log-item.error .log-item-icon {
@@ -3773,6 +3799,10 @@ html.dark-mode .empty-container {
 .log-type.debug {
   color: #1976d2;
   background: rgba(33, 150, 243, 0.1);
+}
+.log-type.info {
+  color: #178844;
+  background: rgba(34, 164, 90, 0.1);
 }
 
 .log-type.error {

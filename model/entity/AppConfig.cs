@@ -1,4 +1,4 @@
-﻿using SqlSugar;
+using SqlSugar;
 
 namespace dy.net.model.entity
 {
@@ -109,6 +109,9 @@ namespace dy.net.model.entity
         /// 仅同步新视频（github 有人提议增加这个配置项，因为之前收藏了很多烂七八糟的视频。不想同步，又不想一个一个清除）
         /// </summary>
         public bool OnlySyncNew { get; set; } = true;
+        /// <summary>Whether Debug level logs are written. Null means enabled for configurations created before this option.</summary>
+        [SugarColumn(IsNullable = true)]
+        public bool? DebugLogEnabled { get; set; } = true;
         /// <summary>
         /// 是否合并下载动态图视频
         /// </summary>
@@ -128,6 +131,12 @@ namespace dy.net.model.entity
         ///// </summary>
         //[SugarColumn(Length = 500, IsNullable = true)]
         //public string SeriesPath { get; set; }
+
+        /// <summary>
+        /// 视频画质档位偏好：0=原画优先(官方302直链/极清), 1080=1080P超清, 720=720P高清
+        /// </summary>
+        [SugarColumn(IsNullable = true)]
+        public int? VideoQuality { get; set; } = 0;
 
         /// <summary>
         /// 264 265 0-默认0=264
